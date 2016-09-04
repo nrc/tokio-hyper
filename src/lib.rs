@@ -53,6 +53,7 @@ impl Server {
 
     pub fn serve<F, T>(self, new_service: F) -> io::Result<()>
         where T: Service<Req = Message<Request>, Resp = Message<Response>, Error = Error> + Send + 'static,
+              <T as Service>::Fut: Send + 'static,
               F: Fn() -> T + Send + 'static,
     {
         let addr = self.addr.unwrap_or_else(|| "0.0.0.0:12345".parse().unwrap());
@@ -85,7 +86,8 @@ impl<T> ServerHandler<T> {
 }
 
 impl<T> Handler<HttpStream> for ServerHandler<T>
-    where T: Service<Req = Message<Request>, Resp = Message<Response>, Error = Error>
+    where T: Service<Req = Message<Request>, Resp = Message<Response>, Error = Error>,
+          <T as Service>::Fut: Send + 'static
 {
     fn on_request(&mut self, req: HyperRequest<HttpStream>) -> Next {
         self.req_head = Some(Request::from(req));
